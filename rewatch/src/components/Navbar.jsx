@@ -34,7 +34,7 @@ function Navbar() {
           {currentUser && (
             <>
               <NavLink
-                to="/app"
+                to="/browse"
                 className={({ isActive }) =>
                   "nav-link" + (isActive ? " active" : "")
                 }

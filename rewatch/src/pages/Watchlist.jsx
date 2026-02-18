@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { fetchWatchlist, saveWatchlist } from "../services/watchlistService";
+import { useWatchlist } from "../context/WatchlistContext";
+import AnimeCard from "../components/AnimeCard";
 import "../App.css";
 
 /*
@@ -14,10 +15,9 @@ function Watchlist() {
   const { currentUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [watchlist, setWatchlist] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  // Use shared watchlist context
+  const { watchlist, loading, error, removeFromWatchlist: removeFromWatchlistContext, saving } = useWatchlist();
+  const removingRef = useRef(new Set()); // Track which items are being removed
 
   // Redirect to login if not authenticated (but wait for auth check to finish)
   useEffect(() => {
@@ -27,53 +27,24 @@ function Watchlist() {
     }
   }, [currentUser, authLoading, navigate]);
 
-  // Fetch watchlist from backend when we have a user
-  useEffect(() => {
+  // Remove an item from the watchlist using shared context
+  const handleRemove = async (animeId) => {
     if (!currentUser) return;
-
-    let isCancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError("");
-      const result = await fetchWatchlist(currentUser.id);
-      if (isCancelled) return;
-
-      if (result.success) {
-        setWatchlist(result.watchlist);
-      } else {
-        setWatchlist([]);
-        setError(result.error || "Failed to load watchlist.");
-      }
-      setLoading(false);
+    
+    // Prevent duplicate removals
+    const animeIdStr = String(animeId);
+    if (removingRef.current.has(animeIdStr) || saving) {
+      return;
     }
-
-    load();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentUser]);
-
-  // Remove an item from the watchlist and sync with backend.
-  // We optimistically update the UI first for a snappy feel.
-  const removeFromWatchlist = async (animeId) => {
-    if (!currentUser) return;
-    setError("");
-
-    const updated = watchlist.filter((item) => item.id !== animeId);
-    setWatchlist(updated); // Optimistic update
-    setSaving(true);
-
-    const result = await saveWatchlist(currentUser.id, updated);
-    setSaving(false);
-
-    if (!result.success) {
-      // If saving failed, show an error and re-sync from backend next time.
-      setError(result.error || "Failed to update watchlist.");
-    } else {
-      // Use the canonical list from the backend (also ensures no duplicates)
-      setWatchlist(result.watchlist);
+    
+    removingRef.current.add(animeIdStr);
+    try {
+      await removeFromWatchlistContext(animeId);
+    } finally {
+      // Remove from tracking after a delay to prevent rapid re-clicks
+      setTimeout(() => {
+        removingRef.current.delete(animeIdStr);
+      }, 500);
     }
   };
 
@@ -90,90 +61,101 @@ function Watchlist() {
 
   return (
     <div className="app-page">
-      <div className="page-header" style={{ textAlign: "center" }}>
-        <h2 className="page-title">Your Watchlist</h2>
-        <div className="watchlist-count">
-          Total: {watchlist.length} item{watchlist.length === 1 ? "" : "s"}
+      <div className="page-header">
+        <h1 className="page-title" style={{ fontSize: "2.5rem", marginBottom: "8px" }}>
+          My Watchlist
+        </h1>
+        <div className="watchlist-count" style={{ fontSize: "1.1rem", marginBottom: "24px" }}>
+          {loading
+            ? "Loading..."
+            : `${watchlist.length} ${watchlist.length === 1 ? "anime" : "anime"} saved`}
         </div>
-        {loading && (
-          <div style={{ color: "#bfbfd6", marginTop: 4 }}>
-            Loading watchlist…
-          </div>
-        )}
         {saving && !loading && (
-          <div style={{ color: "#bfbfd6", marginTop: 4 }}>Saving changes…</div>
+          <div
+            style={{
+              color: "#bfbfd6",
+              marginBottom: 16,
+              padding: "8px 16px",
+              background: "rgba(102, 126, 234, 0.1)",
+              borderRadius: 8,
+              display: "inline-block",
+            }}
+          >
+            Saving changes…
+          </div>
         )}
         {error && (
           <div
             style={{
-              marginTop: 8,
-              padding: 8,
-              borderRadius: 6,
+              marginBottom: 16,
+              padding: "12px 16px",
+              borderRadius: 8,
               border: "1px solid #e50914",
-              backgroundColor: "rgba(229, 9, 20, 0.2)",
+              backgroundColor: "rgba(229, 9, 20, 0.15)",
               color: "#fff",
+              maxWidth: "600px",
             }}
           >
             {error}
           </div>
         )}
-        <div style={{ marginTop: 8 }}>
-          <Link to="/" style={{ color: "#bfbfd6", marginRight: 12 }}>
-            ← Home
-          </Link>
-          <Link to="/app" style={{ color: "#bfbfd6" }}>
-            Go to App
-          </Link>
-        </div>
       </div>
 
-      {/* Single-column list using existing sidebar list styles */}
-      <div className="content" style={{ gridTemplateColumns: "1fr" }}>
-        <div className="watchlist" style={{ position: "relative", top: 0 }}>
-          {loading ? (
-            <div className="watchlist-empty">Loading…</div>
-          ) : watchlist.length === 0 ? (
-            <div className="watchlist-empty">Your watchlist is empty.</div>
-          ) : (
-            <ul className="watchlist-list">
-              {watchlist.map((anime) => {
-                const poster =
-                  anime.poster ||
-                  "https://via.placeholder.com/80x110.png?text=Poster";
-                return (
-                  <li
-                    key={anime.id}
-                    className="watchlist-item"
-                    style={{ gridTemplateColumns: "auto 1fr auto" }}
-                  >
-                    <img
-                      src={poster}
-                      alt={`${anime.title} poster`}
-                      style={{
-                        width: 64,
-                        height: 90,
-                        objectFit: "cover",
-                        borderRadius: 8,
-                      }}
+      <div className="content" style={{ gridTemplateColumns: "1fr", maxWidth: "1400px", margin: "0 auto" }}>
+        {loading ? (
+          <div className="watchlist-loading">
+            <div className="loading-spinner"></div>
+            <p>Loading your watchlist...</p>
+          </div>
+        ) : watchlist.length === 0 ? (
+          <div className="watchlist-empty-state">
+            <div className="empty-state-icon">📺</div>
+            <h2>Your watchlist is empty</h2>
+            <p>Start adding anime to your watchlist to keep track of what you want to watch!</p>
+            <Link to="/app" className="start-button" style={{ marginTop: 24, display: "inline-block" }}>
+              Browse Anime
+            </Link>
+          </div>
+        ) : (
+          <div className="watchlist-grid">
+            {watchlist.map((anime, index) => (
+              <div 
+                key={anime.id} 
+                className="watchlist-card-wrapper"
+                style={{ position: "relative" }}
+              >
+                <AnimeCard
+                  anime={anime}
+                  inWatchlist={true}
+                  index={index}
+                  onAddToWatchlist={() => {}}
+                  showWatchStatus={true}
+                />
+                <button
+                  className="watchlist-card-remove"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRemove(anime.id);
+                  }}
+                  disabled={saving || removingRef.current.has(String(anime.id))}
+                  title="Remove from watchlist"
+                  aria-label="Remove from watchlist"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    <div>
-                      <div className="watchlist-item-title">{anime.title}</div>
-                      <div className="watchlist-item-meta">
-                        Year: {anime.year}
-                      </div>
-                    </div>
-                    <button
-                      className="remove-button"
-                      onClick={() => removeFromWatchlist(anime.id)}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

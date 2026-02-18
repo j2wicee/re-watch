@@ -51,10 +51,13 @@ export async function fetchWatchlist(userId) {
  */
 export async function saveWatchlist(userId, watchlist) {
   try {
+    // Ensure watchlist is always an array
+    const safeWatchlist = Array.isArray(watchlist) ? watchlist : [];
+    
     const res = await fetch(`${API_BASE_URL}/watchlist/${userId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ watchlist }),
+      body: JSON.stringify({ watchlist: safeWatchlist }),
     });
 
     const data = await res.json().catch(() => ({}));

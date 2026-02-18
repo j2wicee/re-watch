@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { fetchWatchlist, saveWatchlist } from "../services/watchlistService";
+import { useWatchlist } from "../context/WatchlistContext";
 
 function mapJikanToCard(item) {
   const id = item?.mal_id ?? Math.random();
@@ -19,36 +20,8 @@ export default function UpcomingPage() {
   const [isLoading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // Watchlist state - loaded from backend
-  const [watchlist, setWatchlist] = useState([]);
-  const [loadingWatchlist, setLoadingWatchlist] = useState(false);
-
-  // Load watchlist from backend when user is available
-  useEffect(() => {
-    if (!currentUser) {
-      setWatchlist([]);
-      return;
-    }
-
-    let isCancelled = false;
-
-    async function load() {
-      setLoadingWatchlist(true);
-      const result = await fetchWatchlist(currentUser.id);
-      if (isCancelled) return;
-
-      if (result.success) {
-        setWatchlist(result.watchlist);
-      }
-      setLoadingWatchlist(false);
-    }
-
-    load();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentUser]);
+  // Use shared watchlist context
+  const { watchlist, addToWatchlist: addToWatchlistContext } = useWatchlist();
 
   // Fetch upcoming anime
   useEffect(() => {
@@ -77,20 +50,10 @@ export default function UpcomingPage() {
     };
   }, []);
 
-  // Add to watchlist (prevent duplicates) and sync with backend
+  // Add to watchlist using shared context
   const addToWatchlist = async (anime) => {
     if (!currentUser) return;
-
-    const exists = watchlist.some((w) => w.id === anime.id);
-    if (exists) return;
-
-    const nextList = [...watchlist, anime];
-    setWatchlist(nextList); // Optimistic update
-
-    const result = await saveWatchlist(currentUser.id, nextList);
-    if (result.success) {
-      setWatchlist(result.watchlist);
-    }
+    await addToWatchlistContext(anime);
   };
 
   return (
@@ -105,31 +68,99 @@ export default function UpcomingPage() {
       ) : (
         <div className="content" style={{ gridTemplateColumns: "1fr" }}>
           <div className="anime-grid">
-            {items.map((a) => {
-              const inWatchlist = watchlist.some((w) => w.id === a.id);
+            {items.map((a, index) => {
+              const inWatchlist = watchlist.some((w) => String(w.id) === String(a.id));
               return (
-                <div key={a.id} className="anime-card">
-                  <img
-                    src={a.poster}
-                    alt={`${a.title} poster`}
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      aspectRatio: "220 / 300",
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      marginBottom: 10,
-                    }}
-                  />
-                  <div className="anime-card-title">{a.title}</div>
-                  <div className="anime-card-meta">Year: {a.year}</div>
+                <div
+                  key={a.id}
+                  className={`anime-card ${inWatchlist ? "added" : ""}`}
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  {inWatchlist && (
+                    <div className="added-indicator" aria-label="In watchlist">
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path
+                          d="M15 4.5L6.75 12.75L3 9"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                  <Link
+                    to={`/anime/${a.id}`}
+                    className="anime-card-link"
+                  >
+                    <div className="anime-poster-container">
+                      <img
+                        src={a.poster}
+                        alt={`${a.title} poster`}
+                        className="anime-poster"
+                        loading="lazy"
+                      />
+                      {inWatchlist && (
+                        <div className="poster-overlay">
+                          <div className="overlay-badge">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <path
+                                d="M11.667 3.5L5.25 9.917L2.333 7"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            <span>In Watchlist</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="anime-card-content">
+                      <div className="anime-card-title">{a.title}</div>
+                      <div className="anime-card-meta">Year: {a.year}</div>
+                    </div>
+                  </Link>
                   <div className="card-actions">
                     <button
-                      className={`add-button${inWatchlist ? " disabled" : ""}`}
-                      onClick={() => addToWatchlist(a)}
+                      className={`add-button ${inWatchlist ? "added" : ""}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!inWatchlist) {
+                          addToWatchlist(a);
+                        }
+                      }}
                       disabled={inWatchlist}
+                      aria-label={inWatchlist ? "Already in watchlist" : "Add to watchlist"}
                     >
-                      {inWatchlist ? "Added" : "Add to Watchlist"}
+                      {inWatchlist ? (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M13.333 4L6 11.333L2.667 8"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span>In Watchlist</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M8 3.333V12.667M3.333 8H12.667"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                          <span>Add to Watchlist</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
