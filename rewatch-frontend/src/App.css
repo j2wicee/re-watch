@@ -421,6 +421,7 @@
   backface-visibility: hidden;
   transform: translateZ(0);
   min-width: 0; /* Allow grid item to shrink and prevent overflow */
+  min-height: 0; /* Safari: prevents flex/grid item from stretching to fill viewport */
   width: 100%;
   contain: layout; /* Prevents Safari layout cascade on scroll */
 }
@@ -593,6 +594,7 @@
   color: inherit;
   display: block;
   flex: 1;
+  min-height: 0; /* Safari: flex child with flex:1 must have min-height:0 to prevent stretching */
   padding: 16px;
   padding-bottom: 12px;
   position: relative;

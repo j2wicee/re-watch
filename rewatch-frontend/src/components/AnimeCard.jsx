@@ -84,11 +84,7 @@ const AnimeCard = React.memo(({ anime, inWatchlist, index, onAddToWatchlist, sho
   return (
     <div
       className={cardClassName}
-      style={{ 
-        animationDelay: `${index * 0.05}s`,
-        // Prevent layout shifts
-        minHeight: '100%'
-      }}
+      style={{ animationDelay: `${index * 0.05}s` }}
     >
       {/* Only show added indicator if not showing watch status (to avoid conflicts with remove button) */}
       {inWatchlist && !showWatchStatus && (
