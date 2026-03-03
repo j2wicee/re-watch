@@ -94,12 +94,14 @@ export default function TrendingCurrentPage() {
                     className="anime-card-link"
                   >
                     <div className="anime-poster-container">
-                      <img
-                        src={a.poster}
-                        alt={`${a.title} poster`}
-                        className="anime-poster"
-                        loading="lazy"
-                      />
+                    <img
+                      src={a.poster}
+                      alt={`${a.title} poster`}
+                      className="anime-poster"
+                      width={220}
+                      height={300}
+                      loading="lazy"
+                    />
                       {inWatchlist && (
                         <div className="poster-overlay">
                           <div className="overlay-badge">

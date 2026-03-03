@@ -143,6 +143,8 @@ const AnimeCard = React.memo(({ anime, inWatchlist, index, onAddToWatchlist, sho
             src={anime.poster}
             alt={`${anime.title} poster`}
             className="anime-poster"
+            width={220}
+            height={300}
             loading="lazy"
           />
           {inWatchlist && (

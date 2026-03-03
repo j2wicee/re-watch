@@ -389,6 +389,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 24px;
+  overflow-anchor: none; /* Prevents Safari scroll anchoring issues with lazy-loaded content */
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -421,6 +422,7 @@
   transform: translateZ(0);
   min-width: 0; /* Allow grid item to shrink and prevent overflow */
   width: 100%;
+  contain: layout; /* Prevents Safari layout cascade on scroll */
 }
 
 @keyframes cardFadeIn {
@@ -604,6 +606,7 @@
   overflow: hidden;
   background: #0f0f1a;
   aspect-ratio: 220 / 300;
+  contain: layout; /* Prevents Safari layout cascade when scrolling */
 }
 
 .anime-poster {
