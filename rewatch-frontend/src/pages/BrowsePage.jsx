@@ -190,14 +190,14 @@ function BrowsePage() {
     };
   }, [debouncedText, currentSearchQuery]);
 
-  // Add to watchlist using shared context
-  const addToWatchlist = async (anime) => {
+  // Add to watchlist using shared context (stable callback for useCallback deps)
+  const addToWatchlist = useCallback(async (anime) => {
     if (!currentUser) {
       navigate("/login");
       return;
     }
     await addToWatchlistContext(anime);
-  };
+  }, [currentUser, navigate, addToWatchlistContext]);
 
   // Whether search mode is active
   const searchActive = useMemo(() => debouncedText.length > 0, [debouncedText]);
