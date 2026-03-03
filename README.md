@@ -2,7 +2,7 @@
 
 A full-stack anime tracking web application. Discover trending anime, build and manage a personal watchlist, and track episode progress. Built with React, Express, and MongoDB.
 
-**Live Demo:** [https://your-app.vercel.app](https://your-app.vercel.app) *(placeholder — replace with your deployed URL)*
+**Live Demo:** https://re-watch-gamma.vercel.app
 
 ---
 
