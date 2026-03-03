@@ -10,6 +10,26 @@ function generateToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "7d" });
 }
 
+/** Validates password strength. Returns null if valid, or an error message. */
+function validatePasswordStrength(password) {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  if (!/[^a-zA-Z0-9]/.test(password)) {
+    return "Password must contain at least one special character (!@#$%^&* etc.)";
+  }
+  return null;
+}
+
 // Signup route
 router.post("/signup", async (req, res) => {
   try {
@@ -20,10 +40,9 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters" });
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     // Email validation

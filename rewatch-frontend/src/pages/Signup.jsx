@@ -110,7 +110,7 @@ function Signup() {
               htmlFor="password"
               style={{ display: "block", marginBottom: 6, color: "#bfbfd6" }}
             >
-              Password (min. 6 characters)
+              Password (8+ chars, upper and lower case, number, special char)
             </label>
             <input
               id="password"
@@ -118,7 +118,7 @@ function Signup() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               style={{
                 width: "100%",
                 padding: "12px 14px",
@@ -144,7 +144,7 @@ function Signup() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
               style={{
                 width: "100%",
                 padding: "12px 14px",
