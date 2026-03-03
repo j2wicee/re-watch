@@ -9,11 +9,21 @@ const adminRoutes = require("./routes/admin");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - restrict CORS in production when FRONTEND_URL is set
-const corsOptions = process.env.FRONTEND_URL
-  ? { origin: process.env.FRONTEND_URL }
-  : {};
-app.use(cors(corsOptions));
+// CORS: allow your frontend origin. Add FRONTEND_URL in Railway if using a different URL.
+const allowedOrigins = [
+  "https://re-watch-gamma.vercel.app",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      const ok = allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production";
+      cb(null, ok ? origin : false);
+    },
+    optionsSuccessStatus: 204,
+  })
+);
 app.use(express.json());
 
 // Routes
